@@ -5,7 +5,7 @@ using Microsoft.CodeAnalysis.Diagnostics;
 using System.Collections.Immutable;
 
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
-public class NamedParameterAnalyzer : DiagnosticAnalyzer
+public class NamedParameter_Analyzer : DiagnosticAnalyzer
 {
     public const string DiagnosticId = "YBU001";
     public static readonly LocalizableString Title = "为可选参数使用命名参数";
