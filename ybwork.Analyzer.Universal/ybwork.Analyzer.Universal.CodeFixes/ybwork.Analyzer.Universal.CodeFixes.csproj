@@ -7,10 +7,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="3.3.1" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\ybwork.Analyzer.Universal\ybwork.Analyzer.Universal.csproj" />
   </ItemGroup>
 
