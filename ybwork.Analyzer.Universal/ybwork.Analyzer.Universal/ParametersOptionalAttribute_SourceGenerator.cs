@@ -18,7 +18,7 @@ namespace ybwork.Analyzer.Universal
                 (context, cancellationToken) =>
                 {
                     if (context.SemanticModel.GetDeclaredSymbol(context.Node) is INamedTypeSymbol namedTypeSymbol &&
-                        namedTypeSymbol.GetAttributes().Any(a => a.AttributeClass?.Name == "ParametersOptionalAttribute"))
+                        namedTypeSymbol.GetAttributes().Any(a => a.AttributeClass?.Name == nameof(ParametersOptionalAttribute)))
                     {
                         return namedTypeSymbol;
                     }

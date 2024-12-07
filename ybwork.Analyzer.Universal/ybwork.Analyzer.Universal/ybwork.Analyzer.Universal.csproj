@@ -18,4 +18,8 @@
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.11.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\..\ybwork.Analyzer.Universal.Define\ybwork.Analyzer.Universal.Define.csproj" />
+  </ItemGroup>
+
 </Project>
