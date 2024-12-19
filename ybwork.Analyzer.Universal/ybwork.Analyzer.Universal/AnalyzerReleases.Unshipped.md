@@ -7,4 +7,5 @@ Rule ID | Category | Severity | Notes
 --------|----------|----------|-------
 YBU001 | Usage | Warning | NamedParameterAnalyzer
 YBU002 | Usage | Warning | EmptyStringCompare_Analyzer
-YBU011 | Usage | Warning | AsyncVoidMethod_Analyzer
+YBU011 | Usage | Error | AsyncVoidMethod_Analyzer
+YBU012 | Usage | Error | AsyncVoidLambda_Analyzer
