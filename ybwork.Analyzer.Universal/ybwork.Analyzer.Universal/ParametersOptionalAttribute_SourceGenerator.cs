@@ -1,44 +1,59 @@
 ﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
+using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Microsoft.CodeAnalysis.CSharp;
-using System;
+using System.Xml.Linq;
 
 namespace ybwork.Analyzer.Universal
 {
     [Generator]
-    public class ParametersOptionalAttribute_SourceGenerator : IIncrementalGenerator
+    public class ParametersOptionalAttribute_SourceGenerator : ISourceGenerator
     {
-        public void Initialize(IncrementalGeneratorInitializationContext context)
+        public void Initialize(GeneratorInitializationContext context)
         {
-            // 获取所有带有 [ParametersOptionalAttribute] 属性的类
-            var attributedClasses = context.SyntaxProvider.CreateSyntaxProvider(
-                (syntaxNode, _) => syntaxNode is ClassDeclarationSyntax or StructDeclarationSyntax,
-                (context, cancellationToken) =>
-                {
-                    if (context.SemanticModel.GetDeclaredSymbol(context.Node) is INamedTypeSymbol namedTypeSymbol &&
-                        namedTypeSymbol.GetAttributes().Any(a => a.AttributeClass?.Name == nameof(ParametersOptionalAttribute)))
-                    {
-                        return namedTypeSymbol;
-                    }
-                    return null;
-                })
-                .Where(symbol => symbol != null)
-                .Collect();
-
-            // 注册生成器
-            context.RegisterSourceOutput(attributedClasses, (spc, sourceClasses) =>
-            {
-                foreach (var namedTypeSymbol in sourceClasses)
-                {
-                    GeneratePartialClass(spc, namedTypeSymbol);
-                }
-            });
         }
 
-        private static void GeneratePartialClass(SourceProductionContext context, INamedTypeSymbol classSymbol)
+        public void Execute(GeneratorExecutionContext context)
+        {
+            var attributedClasses = new List<INamedTypeSymbol>();
+
+            // Collect all the classes/structs with the [ParametersOptionalAttribute] attribute
+            foreach (var syntaxTree in context.Compilation.SyntaxTrees)
+            {
+                var root = syntaxTree.GetRoot(context.CancellationToken);
+                var model = context.Compilation.GetSemanticModel(syntaxTree);
+
+                IEnumerable<INamedTypeSymbol> namedTypes = root.DescendantNodes()
+                    .Where(node => node is ClassDeclarationSyntax or StructDeclarationSyntax or RecordDeclarationSyntax)
+                    .Select(node => model.GetDeclaredSymbol(node))
+                    .Where(symbol => symbol is INamedTypeSymbol)
+                    .Cast<INamedTypeSymbol>();
+                foreach (INamedTypeSymbol namedTypeSymbol in namedTypes)
+                {
+                    bool hasParametersOptionalAttribute = namedTypeSymbol.GetAttributes()
+                        .Where(attr => attr.AttributeClass != null)
+                        .Select(attr => attr.AttributeClass.Name)
+                        .Any(attr => attr is nameof(ParametersOptionalAttribute));
+                    if (hasParametersOptionalAttribute)
+                    {
+                        attributedClasses.Add(namedTypeSymbol);
+                    }
+                }
+            }
+
+            // Generate partial classes for each collected symbol
+            foreach (var namedTypeSymbol in attributedClasses)
+            {
+                GeneratePartialClass(context, namedTypeSymbol);
+            }
+        }
+
+        private static void GeneratePartialClass(GeneratorExecutionContext context, INamedTypeSymbol classSymbol)
         {
             string className = classSymbol.Name;
 
