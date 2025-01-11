@@ -2,3 +2,6 @@
 
 # IDE0090: 使用 "new(...)"
 dotnet_diagnostic.IDE0090.severity = silent
+
+# RS1035: 不要使用禁用于分析器的 API
+dotnet_diagnostic.RS1035.severity = silent
