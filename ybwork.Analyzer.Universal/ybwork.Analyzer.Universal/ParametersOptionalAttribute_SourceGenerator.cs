@@ -4,6 +4,7 @@ using Microsoft.CodeAnalysis.Text;
 using System.Linq;
 using System.Text;
 using Microsoft.CodeAnalysis.CSharp;
+using System;
 
 namespace ybwork.Analyzer.Universal
 {
@@ -41,26 +42,49 @@ namespace ybwork.Analyzer.Universal
         {
             string className = classSymbol.Name;
 
-            var members = classSymbol.GetMembers().Where(s => s is IFieldSymbol)
-                .Cast<IFieldSymbol>().ToArray();
-            var parameters = members
-                .Select(field =>
+            var members = classSymbol.GetMembers()
+                .Where(s =>
                 {
-                    TypeSyntax type = SyntaxFactory.ParseTypeName(field.Type.ToDisplayString());
-                    return SyntaxFactory.Parameter(SyntaxFactory.Identifier(field.Name))
+                    if (s is IFieldSymbol field)
+                        return field.IsReadOnly && !field.Name.Contains("<");
+
+                    if (s is IPropertySymbol property)
+                    {
+                        if (!property.IsReadOnly)
+                            return false;
+                        var declaring = property.DeclaringSyntaxReferences.First().GetSyntax() as PropertyDeclarationSyntax;
+                        if (declaring.ChildNodes().Any(node => node is ArrowExpressionClauseSyntax))
+                            return false;
+                        return true;
+                    }
+
+                    return false;
+                })
+                .ToArray();
+            var parameters = members
+                .Select(member =>
+                {
+                    var memberType = member switch
+                    {
+                        IFieldSymbol field => field.Type,
+                        IPropertySymbol property => property.Type,
+                        _ => throw new NotImplementedException()
+                    };
+                    TypeSyntax type = SyntaxFactory.ParseTypeName(memberType.ToDisplayString());
+                    return SyntaxFactory.Parameter(SyntaxFactory.Identifier(member.Name))
                         .WithType(type)
                         .WithDefault(SyntaxFactory.EqualsValueClause(SyntaxFactory.DefaultExpression(type)));
                 }).ToArray();
             var statements = members
-                .Select(field =>
+                .Select(member =>
                 {
                     AssignmentExpressionSyntax assignment = SyntaxFactory.AssignmentExpression(
                         SyntaxKind.SimpleAssignmentExpression,
                         SyntaxFactory.MemberAccessExpression(
                             SyntaxKind.SimpleMemberAccessExpression,
                             SyntaxFactory.ThisExpression(),
-                            SyntaxFactory.IdentifierName(field.Name)),
-                        SyntaxFactory.IdentifierName(field.Name));
+                            SyntaxFactory.IdentifierName(member.Name)),
+                        SyntaxFactory.IdentifierName(member.Name));
                     return SyntaxFactory.ExpressionStatement(assignment);
                 }).ToArray();
             var constructorDeclarationSyntax = SyntaxFactory.ConstructorDeclaration(className)
@@ -73,7 +97,7 @@ namespace ybwork.Analyzer.Universal
             {
                 TypeKind.Struct => SyntaxFactory.StructDeclaration(className),
                 TypeKind.Class => SyntaxFactory.ClassDeclaration(className),
-                _ => throw new System.NotImplementedException(),
+                _ => throw new NotImplementedException(),
             };
             classDeclaration = classDeclaration
                 .WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.PartialKeyword)))
