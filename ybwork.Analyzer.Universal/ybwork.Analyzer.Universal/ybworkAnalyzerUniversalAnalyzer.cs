@@ -9,8 +9,8 @@ public class NamedParameterAnalyzer : DiagnosticAnalyzer
 {
     public const string DiagnosticId = "YBU001";
     public static readonly LocalizableString Title = "为可选参数使用命名参数";
-    private static readonly LocalizableString MessageFormat = "方法 '{0}' 的可选参数 '{1}' 应该使用命名参数";
-    private static readonly DiagnosticDescriptor Rule = new DiagnosticDescriptor(DiagnosticId, Title, MessageFormat, "Usage", DiagnosticSeverity.Warning, isEnabledByDefault: true);
+    private static readonly LocalizableString MessageFormat = "{0} '{1}' 的可选参数 '{2}' 应该使用命名参数";
+    private static readonly DiagnosticDescriptor Rule = new(DiagnosticId, Title, MessageFormat, "Usage", DiagnosticSeverity.Warning, isEnabledByDefault: true);
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(Rule);
 
@@ -20,6 +20,7 @@ public class NamedParameterAnalyzer : DiagnosticAnalyzer
         context.EnableConcurrentExecution();
 
         context.RegisterSyntaxNodeAction(AnalyzeInvocationExpression, SyntaxKind.InvocationExpression);
+        context.RegisterSyntaxNodeAction(AnalyzeObjectCreationExpression, SyntaxKind.ObjectCreationExpression);
     }
 
     private void AnalyzeInvocationExpression(SyntaxNodeAnalysisContext context)
@@ -33,7 +34,25 @@ public class NamedParameterAnalyzer : DiagnosticAnalyzer
                 ArgumentSyntax argument = invocation.ArgumentList.Arguments[i];
                 if (argument.NameColon == null && methodSymbol.Parameters[i].IsOptional)
                 {
-                    var diagnostic = Diagnostic.Create(Rule, argument.GetLocation(), methodSymbol.Name, methodSymbol.Parameters[i].Name);
+                    var diagnostic = Diagnostic.Create(Rule, argument.GetLocation(), "方法", methodSymbol.Name, methodSymbol.Parameters[i].Name);
+                    context.ReportDiagnostic(diagnostic);
+                }
+            }
+        }
+    }
+
+    private void AnalyzeObjectCreationExpression(SyntaxNodeAnalysisContext context)
+    {
+        var objectCreation = (ObjectCreationExpressionSyntax)context.Node;
+
+        if (context.SemanticModel.GetSymbolInfo(objectCreation).Symbol is IMethodSymbol methodSymbol)
+        {
+            for (int i = 0; i < objectCreation.ArgumentList.Arguments.Count; i++)
+            {
+                ArgumentSyntax argument = objectCreation.ArgumentList.Arguments[i];
+                if (argument.NameColon == null && methodSymbol.Parameters[i].IsOptional)
+                {
+                    var diagnostic = Diagnostic.Create(Rule, argument.GetLocation(), "构造函数", methodSymbol.ContainingType.Name, methodSymbol.Parameters[i].Name);
                     context.ReportDiagnostic(diagnostic);
                 }
             }
