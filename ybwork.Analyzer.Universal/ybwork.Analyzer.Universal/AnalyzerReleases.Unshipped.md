@@ -6,3 +6,4 @@
 Rule ID | Category | Severity | Notes
 --------|----------|----------|-------
 YBU001 | Usage | Warning | NamedParameterAnalyzer
+YBU002 | Usage | Warning | EmptyStringCompare_Analyzer
