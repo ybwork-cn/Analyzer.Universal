@@ -39,8 +39,7 @@ namespace ybwork.Analyzer.Universal
             context.RegisterCodeFix(
                 CodeAction.Create(
                     title: "添加throw默认示例",
-                    createChangedDocument: c => ReplaceVoidToYueTaskAsync(context.Document, statement, c),
-                    equivalenceKey: nameof(AsyncVoidMethod_Analyzer.Title)),
+                    createChangedDocument: c => ReplaceVoidToYueTaskAsync(context.Document, statement, c)),
                 diagnostic);
         }
 

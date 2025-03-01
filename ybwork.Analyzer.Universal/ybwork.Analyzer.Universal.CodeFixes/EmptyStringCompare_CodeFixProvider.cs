@@ -3,15 +3,9 @@ using Microsoft.CodeAnalysis.CodeActions;
 using Microsoft.CodeAnalysis.CodeFixes;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.CodeAnalysis.Rename;
-using Microsoft.CodeAnalysis.Text;
-using System;
-using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Composition;
-using System.Data;
 using System.Linq;
-using System.Linq.Expressions;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -40,7 +34,10 @@ namespace ybwork.Analyzer.Universal
             var diagnosticSpan = diagnostic.Location.SourceSpan;
 
             // Find the type declaration identified by the diagnostic.
-            var expression = root.FindToken(diagnosticSpan.Start).Parent.AncestorsAndSelf().OfType<BinaryExpressionSyntax>().First();
+            var expression = root.FindToken(diagnosticSpan.Start).Parent
+                .AncestorsAndSelf()
+                .OfType<BinaryExpressionSyntax>()
+                .First();
 
             // Register a code action that will invoke the fix.
             context.RegisterCodeFix(
@@ -59,13 +56,18 @@ namespace ybwork.Analyzer.Universal
             ExpressionSyntax v = expressionSyntax.Left is LiteralExpressionSyntax
                 ? expressionSyntax.Right
                 : expressionSyntax.Left;
+            bool isEquals = expressionSyntax.OperatorToken.ValueText == "==";
 
-            var newExpression = SyntaxFactory.InvocationExpression(
+            ExpressionSyntax newExpression = SyntaxFactory.InvocationExpression(
                 SyntaxFactory.MemberAccessExpression(
                     SyntaxKind.SimpleMemberAccessExpression,
                     SyntaxFactory.ParseExpression("string"),
                     SyntaxFactory.IdentifierName("IsNullOrEmpty")),
                 SyntaxFactory.ArgumentList(SyntaxFactory.SingletonSeparatedList(SyntaxFactory.Argument(v))));
+
+            // 如果不是"=="，也就是"!="，则需要取反
+            if (!isEquals)
+                newExpression = SyntaxFactory.PrefixUnaryExpression(SyntaxKind.LogicalNotExpression, newExpression);
 
             var newRoot = root.ReplaceNode(expressionSyntax, newExpression);
             return document.WithSyntaxRoot(newRoot);

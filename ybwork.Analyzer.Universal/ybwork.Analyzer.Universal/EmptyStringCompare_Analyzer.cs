@@ -21,7 +21,7 @@ namespace ybwork.Analyzer.Universal
             context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
             context.EnableConcurrentExecution();
 
-            context.RegisterSyntaxNodeAction(AnalyzeEqualsExpression, SyntaxKind.EqualsExpression);
+            context.RegisterSyntaxNodeAction(AnalyzeEqualsExpression, SyntaxKind.EqualsExpression, SyntaxKind.NotEqualsExpression);
         }
 
         private void AnalyzeEqualsExpression(SyntaxNodeAnalysisContext context)
@@ -35,21 +35,24 @@ namespace ybwork.Analyzer.Universal
             Check(left, right);
             Check(right, left);
 
-            //Check if the second side is null and the first side is a string
+            // 检查是否可以使用string.IsNullOrEmpty替换
             void Check(ExpressionSyntax first, ExpressionSyntax second)
             {
-                if (second is LiteralExpressionSyntax literal)
-                {
-                    if (literal.IsKind(SyntaxKind.NullLiteralExpression)
-                        || literal.IsKind(SyntaxKind.StringLiteralExpression) && literal.Token.Text == "\"\"")
-                    {
-                        var typeInfo = semanticModel.GetTypeInfo(first);
+                // 如果第一个是字面量表达式，交换两个表达式
+                if (first is LiteralExpressionSyntax)
+                    (first, second) = (second, first);
 
-                        if (typeInfo.Type != null && typeInfo.Type.SpecialType == SpecialType.System_String)
-                        {
-                            var diagnostic = Diagnostic.Create(Rule, expressionSyntax.GetLocation(), first.ToString());
-                            context.ReportDiagnostic(diagnostic);
-                        }
+                LiteralExpressionSyntax literal = second as LiteralExpressionSyntax;
+
+                if (literal.IsKind(SyntaxKind.NullLiteralExpression)
+                    || literal.IsKind(SyntaxKind.StringLiteralExpression) && literal.Token.Text == "\"\"")
+                {
+                    var typeInfo = semanticModel.GetTypeInfo(first);
+
+                    if (typeInfo.Type != null && typeInfo.Type.SpecialType == SpecialType.System_String)
+                    {
+                        var diagnostic = Diagnostic.Create(Rule, expressionSyntax.GetLocation(), first.ToString());
+                        context.ReportDiagnostic(diagnostic);
                     }
                 }
             }
