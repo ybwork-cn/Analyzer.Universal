@@ -27,33 +27,25 @@ namespace ybwork.Analyzer.Universal
         private void AnalyzeEqualsExpression(SyntaxNodeAnalysisContext context)
         {
             var expressionSyntax = (BinaryExpressionSyntax)context.Node;
-            var left = expressionSyntax.Left;
-            var right = expressionSyntax.Right;
+            var first = expressionSyntax.Left;
+            var second = expressionSyntax.Right;
 
-            var semanticModel = context.SemanticModel;
+            // 如果第一个是字面量表达式，交换两个表达式
+            if (first is LiteralExpressionSyntax)
+                (first, second) = (second, first);
 
-            Check(left, right);
-            Check(right, left);
+            LiteralExpressionSyntax literal = second as LiteralExpressionSyntax;
 
-            // 检查是否可以使用string.IsNullOrEmpty替换
-            void Check(ExpressionSyntax first, ExpressionSyntax second)
+            if (literal.IsKind(SyntaxKind.NullLiteralExpression)
+                || literal.IsKind(SyntaxKind.StringLiteralExpression) && literal.Token.Text == "\"\"")
             {
-                // 如果第一个是字面量表达式，交换两个表达式
-                if (first is LiteralExpressionSyntax)
-                    (first, second) = (second, first);
+                var semanticModel = context.SemanticModel;
+                var typeInfo = semanticModel.GetTypeInfo(first);
 
-                LiteralExpressionSyntax literal = second as LiteralExpressionSyntax;
-
-                if (literal.IsKind(SyntaxKind.NullLiteralExpression)
-                    || literal.IsKind(SyntaxKind.StringLiteralExpression) && literal.Token.Text == "\"\"")
+                if (typeInfo.Type != null && typeInfo.Type.SpecialType == SpecialType.System_String)
                 {
-                    var typeInfo = semanticModel.GetTypeInfo(first);
-
-                    if (typeInfo.Type != null && typeInfo.Type.SpecialType == SpecialType.System_String)
-                    {
-                        var diagnostic = Diagnostic.Create(Rule, expressionSyntax.GetLocation(), first.ToString());
-                        context.ReportDiagnostic(diagnostic);
-                    }
+                    var diagnostic = Diagnostic.Create(Rule, expressionSyntax.GetLocation(), first.ToString());
+                    context.ReportDiagnostic(diagnostic);
                 }
             }
         }
