@@ -3,6 +3,7 @@ using Microsoft.CodeAnalysis.CodeActions;
 using Microsoft.CodeAnalysis.CodeFixes;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Rename;
 using System.Collections.Immutable;
 using System.Composition;
 using System.Linq;
@@ -11,12 +12,12 @@ using System.Threading.Tasks;
 
 namespace ybwork.Analyzer.Universal
 {
-    [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(AsyncVoidMethod_CodeFixProvider)), Shared]
-    public class AsyncVoidMethod_CodeFixProvider : CodeFixProvider
+    [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(AsyncMethodName_Analyzer)), Shared]
+    public class AsyncMethodName_CodeFixProvider : CodeFixProvider
     {
         public sealed override ImmutableArray<string> FixableDiagnosticIds
         {
-            get { return ImmutableArray.Create(AsyncVoidMethod_Analyzer.DiagnosticId); }
+            get { return ImmutableArray.Create(AsyncMethodName_Analyzer.DiagnosticId); }
         }
 
         public sealed override FixAllProvider GetFixAllProvider()
@@ -38,29 +39,21 @@ namespace ybwork.Analyzer.Universal
             // Register a code action that will invoke the fix.
             context.RegisterCodeFix(
                 CodeAction.Create(
-                    title: AsyncVoidMethod_Analyzer.Title,
-                    createChangedDocument: c => ReplaceVoidToYueTaskAsync(context.Document, declaration, c),
-                    equivalenceKey: nameof(AsyncVoidMethod_Analyzer.Title)),
+                    title: AsyncMethodName_Analyzer.Title,
+                    createChangedSolution: c => ReplaceTaskMethodNameAsync(context.Document, declaration, c),
+                    equivalenceKey: nameof(AsyncMethodName_Analyzer.Title)),
                 diagnostic);
         }
 
-        private async Task<Document> ReplaceVoidToYueTaskAsync(Document document, MethodDeclarationSyntax methodDeclaration, CancellationToken cancellationToken)
+        private async Task<Solution> ReplaceTaskMethodNameAsync(Document document, MethodDeclarationSyntax methodDecl, CancellationToken cancellationToken)
         {
-            // 创建新的返回类型节点
-            var newReturnType = SyntaxFactory.ParseTypeName("YueTask").WithTriviaFrom(methodDeclaration.ReturnType);
+            // 替换方法名
+            string newMethodName = methodDecl.Identifier.Text + "Async";
+            var semanticModel = await document.GetSemanticModelAsync(cancellationToken);
+            var methodSymbol = semanticModel.GetDeclaredSymbol(methodDecl, cancellationToken);
 
-            // 替换旧的返回类型
-            var newMethodDeclaration = methodDeclaration
-                .WithReturnType(newReturnType);
-
-            // 获取根节点
-            var root = await document.GetSyntaxRootAsync(cancellationToken);
-
-            // 替换旧的方法声明
-            var newRoot = root.ReplaceNode(methodDeclaration, newMethodDeclaration);
-
-            // 返回修改后的文档
-            return document.WithSyntaxRoot(newRoot);
+            // 使用Rename API进行重命名
+            return await Renamer.RenameSymbolAsync(document.Project.Solution, methodSymbol, newMethodName, null, cancellationToken);
         }
     }
 }

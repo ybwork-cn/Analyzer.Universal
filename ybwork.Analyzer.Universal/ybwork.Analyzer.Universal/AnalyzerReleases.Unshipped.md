@@ -10,3 +10,4 @@ YBU002 | Usage | Warning | EmptyStringCompare_Analyzer
 YBU003 | Usage | Warning | NamedTuple_Analyzer
 YBU011 | Usage | Error | AsyncVoidMethod_Analyzer
 YBU012 | Usage | Error | AsyncVoidLambda_Analyzer
+YBU013 | Usage | Warning | AsyncMethodName_Analyzer
