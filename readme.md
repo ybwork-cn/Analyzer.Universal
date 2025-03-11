@@ -11,9 +11,14 @@
 - `PickFieldsAttribute`可以从其他类型挑选字段(源生成器)
 - 元组类型定义时，成员必须显式命名
 - switch语句增加throw默认值(一键修复)
+- 所有类型禁止出现静态字段和静态属性，除非标记了`[EnableStaticValue]`(警告)
+  - 可以标记在类型上，也可以标记在字段或属性上
 
 #### 后续计划
+- 调用构造函数时，可选参数必须显示命名(警告)(一键修复)
 - `ToJsonStringAttribute(bool isOverride)`为类型重写`ToString`方法，将`this`序列化为Json字符串
   - `isOverride`为`true`时，重写`ToString`方法
   - `isOverride`为`false`时，增加一个`ToJsonString`方法
 - switch语句的throw默认值只有在switch语句没有默认值时显示
+- 所有类型禁止出现静态字段和静态属性，除非标记了`[EnableStaticValue]`(警告)
+  - 没有后备字段的属性不会提示
