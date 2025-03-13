@@ -21,6 +21,7 @@ public class NamedParameter_Analyzer : DiagnosticAnalyzer
 
         context.RegisterSyntaxNodeAction(AnalyzeInvocationExpression, SyntaxKind.InvocationExpression);
         context.RegisterSyntaxNodeAction(AnalyzeObjectCreationExpression, SyntaxKind.ObjectCreationExpression);
+        context.RegisterSyntaxNodeAction(AnalyzeBaseConstructorInitializer, SyntaxKind.BaseConstructorInitializer, SyntaxKind.ThisConstructorInitializer);
     }
 
     private void AnalyzeInvocationExpression(SyntaxNodeAnalysisContext context)
@@ -50,6 +51,28 @@ public class NamedParameter_Analyzer : DiagnosticAnalyzer
             for (int i = 0; i < objectCreation.ArgumentList.Arguments.Count; i++)
             {
                 ArgumentSyntax argument = objectCreation.ArgumentList.Arguments[i];
+                if (argument.NameColon == null && methodSymbol.Parameters[i].IsOptional)
+                {
+                    var diagnostic = Diagnostic.Create(Rule, argument.GetLocation(), "构造函数", methodSymbol.ContainingType.Name, methodSymbol.Parameters[i].Name);
+                    context.ReportDiagnostic(diagnostic);
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// 在构造函数中调用基类型构造函数或自身类型其他构造函数
+    /// </summary>
+    /// <param name="context"></param>
+    private void AnalyzeBaseConstructorInitializer(SyntaxNodeAnalysisContext context)
+    {
+        var constructorInitializer = (ConstructorInitializerSyntax)context.Node;
+
+        if (context.SemanticModel.GetSymbolInfo(constructorInitializer).Symbol is IMethodSymbol methodSymbol)
+        {
+            for (int i = 0; i < constructorInitializer.ArgumentList.Arguments.Count; i++)
+            {
+                ArgumentSyntax argument = constructorInitializer.ArgumentList.Arguments[i];
                 if (argument.NameColon == null && methodSymbol.Parameters[i].IsOptional)
                 {
                     var diagnostic = Diagnostic.Create(Rule, argument.GetLocation(), "构造函数", methodSymbol.ContainingType.Name, methodSymbol.Parameters[i].Name);

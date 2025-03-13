@@ -16,7 +16,6 @@
   - 没有后备字段的属性不会提示
 
 #### 后续计划
-- 调用构造函数时，可选参数必须显示命名(警告)(一键修复)
 - `ToJsonStringAttribute(bool isOverride)`为类型重写`ToString`方法，将`this`序列化为Json字符串
   - `isOverride`为`true`时，重写`ToString`方法
   - `isOverride`为`false`时，增加一个`ToJsonString`方法
