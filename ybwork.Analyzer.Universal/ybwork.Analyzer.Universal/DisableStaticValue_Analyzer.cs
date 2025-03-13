@@ -30,10 +30,14 @@ public class DisableStaticValue_Analyzer : DiagnosticAnalyzer
     private void AnalyzeTupleElement(SyntaxNodeAnalysisContext context)
     {
         MemberDeclarationSyntax memberDeclaration = context.Node as MemberDeclarationSyntax;
+        SemanticModel semanticModel = context.SemanticModel;
 
         bool typeEnable = memberDeclaration.FirstAncestorOrSelf<TypeDeclarationSyntax>().AttributeLists
             .SelectMany(attribute => attribute.Attributes)
-            .Select(attribute => context.SemanticModel.GetSymbolInfo(attribute).Symbol.ContainingType)
+            .Select(attribute =>
+            {
+                return semanticModel.GetSymbolInfo(attribute).Symbol.ContainingType;
+            })
             .Any(attribute => attribute.Name is nameof(EnableStaticValueAttribute));
 
         bool enable = typeEnable;
@@ -41,7 +45,7 @@ public class DisableStaticValue_Analyzer : DiagnosticAnalyzer
         {
             bool memberEnable = memberDeclaration.AttributeLists
                 .SelectMany(attribute => attribute.Attributes)
-                .Select(attribute => context.SemanticModel.GetSymbolInfo(attribute).Symbol.ContainingType)
+                .Select(attribute => semanticModel.GetSymbolInfo(attribute).Symbol.ContainingType)
                 .Any(attribute => attribute.Name is nameof(EnableStaticValueAttribute));
             enable = memberEnable;
         }
@@ -57,13 +61,19 @@ public class DisableStaticValue_Analyzer : DiagnosticAnalyzer
                 foreach (VariableDeclaratorSyntax variable in variables)
                 {
                     string name = variable.Identifier.ValueText;
-                    var diagnostic = Diagnostic.Create(Rule, fieldDeclaration.GetLocation(), "属性", name);
+                    var diagnostic = Diagnostic.Create(Rule, fieldDeclaration.GetLocation(), "字段", name);
                     context.ReportDiagnostic(diagnostic);
                 }
             }
         }
         else if (memberDeclaration is PropertyDeclarationSyntax propertyDeclaration)
         {
+            // 自动属性的 get 和 set 访问器都没有显式实现
+            bool hasEmptyAccessors = propertyDeclaration.AccessorList?.Accessors
+                .All(accessor => accessor.Body == null && accessor.ExpressionBody == null) ?? false;
+            if (!hasEmptyAccessors)
+                return;
+
             if (propertyDeclaration.Modifiers.Any(SyntaxKind.StaticKeyword))
             {
                 string name = propertyDeclaration.Identifier.ValueText;
