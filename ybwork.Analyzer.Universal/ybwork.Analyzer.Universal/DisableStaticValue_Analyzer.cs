@@ -12,7 +12,7 @@ using ybwork.Analyzer.Universal;
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public class DisableStaticValue_Analyzer : DiagnosticAnalyzer
 {
-    public const string DiagnosticId = "YBU0021";
+    public const string DiagnosticId = "YBU021";
     public static readonly LocalizableString Title = "禁止使用静态字段或属性（除非标记了[EnableStaticValue]）";
     private static readonly LocalizableString MessageFormat = "禁止使用静态{0} `{1}`";
     private static readonly DiagnosticDescriptor Rule = new(DiagnosticId, Title, MessageFormat, "Usage", DiagnosticSeverity.Warning, isEnabledByDefault: true);
